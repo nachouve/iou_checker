@@ -27,7 +27,8 @@
         }
         .controls {
             flex: 1;
-            min-width: 300px;
+            min-width: 280px;
+            max-width: 340px;
         }
         .buttons button {
             padding: 8px 12px;
@@ -102,6 +103,17 @@
             border-radius: 4px;
             transition: background-color 0.3s;
         }
+        .threshold-control {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .threshold-control input[type="range"] {
+            width: 100%;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -146,6 +158,11 @@
                     <div><label>xmax: <input type="number" id="b2_xmax_pct" class="percent-input"> %</label></div>
                     <div><label>ymax: <input type="number" id="b2_ymax_pct" class="percent-input"> %</label></div>
                 </div>
+            </div>
+
+            <div class="threshold-control">
+                <label for="iouThreshold">IoU Threshold: <span id="iouThresholdValue">0.25</span></label>
+                <input type="range" id="iouThreshold" min="0" max="1" step="0.01" value="0.25">
             </div>
 
             <h2>Calculations</h2>
@@ -201,23 +218,28 @@
                 ctx.fillStyle = box.color;
                 ctx.fillRect(box.xmin, box.ymin, w, h);
                 ctx.strokeStyle = (box === activeBox) ? '#000' : LINE_COLOR;
-                ctx.lineWidth = (box === activeBox) ? 3 : 2;
+                ctx.lineWidth = (box === activeBox) ? 2.5 : 2;
                 ctx.strokeRect(box.xmin, box.ymin, w, h);
 
                 // Draw resize handles if the box is active
                 if (box === activeBox) {
-                    ctx.fillStyle = '#000';
-                    const half = HANDLE_SIZE / 2;
-                    // Corners
-                    ctx.fillRect(box.xmin - half, box.ymin - half, HANDLE_SIZE, HANDLE_SIZE);
-                    ctx.fillRect(box.xmax - half, box.ymin - half, HANDLE_SIZE, HANDLE_SIZE);
-                    ctx.fillRect(box.xmin - half, box.ymax - half, HANDLE_SIZE, HANDLE_SIZE);
-                    ctx.fillRect(box.xmax - half, box.ymax - half, HANDLE_SIZE, HANDLE_SIZE);
-                    // Edges
-                    ctx.fillRect(box.xmin + w / 2 - half, box.ymin - half, HANDLE_SIZE, HANDLE_SIZE);
-                    ctx.fillRect(box.xmin + w / 2 - half, box.ymax - half, HANDLE_SIZE, HANDLE_SIZE);
-                    ctx.fillRect(box.xmin - half, box.ymin + h / 2 - half, HANDLE_SIZE, HANDLE_SIZE);
-                    ctx.fillRect(box.xmax - half, box.ymin + h / 2 - half, HANDLE_SIZE, HANDLE_SIZE);
+                    const handleRadius = HANDLE_SIZE / 2;
+                    const handles = [
+                        {x: box.xmin, y: box.ymin}, {x: box.xmax, y: box.ymin},
+                        {x: box.xmin, y: box.ymax}, {x: box.xmax, y: box.ymax},
+                        {x: box.xmin + w / 2, y: box.ymin}, {x: box.xmin + w / 2, y: box.ymax},
+                        {x: box.xmin, y: box.ymin + h / 2}, {x: box.xmax, y: box.ymin + h / 2}
+                    ];
+
+                    handles.forEach(handle => {
+                        ctx.beginPath();
+                        ctx.arc(handle.x, handle.y, handleRadius, 0, 2 * Math.PI);
+                        ctx.fillStyle = 'white';
+                        ctx.fill();
+                        ctx.strokeStyle = '#333';
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                    });
                 }
             }
 
@@ -245,6 +267,8 @@
             // --- DOM Elements ---
             const editBox1Btn = document.getElementById('editBox1');
             const editBox2Btn = document.getElementById('editBox2');
+            const iouThresholdSlider = document.getElementById('iouThreshold');
+            const iouThresholdValueSpan = document.getElementById('iouThresholdValue');
 
             const inputs = {
                 b1: {
@@ -346,9 +370,12 @@
                 iouEl.innerText = iou.toFixed(3);
 
                 // IoU threshold color indicator
-                if (iou > 0.75) iouEl.style.backgroundColor = 'lightgreen';
-                else if (iou > 0.5) iouEl.style.backgroundColor = 'yellow';
-                else iouEl.style.backgroundColor = 'lightcoral';
+                const threshold = parseFloat(iouThresholdSlider.value);
+                if (iou >= threshold) {
+                    iouEl.style.backgroundColor = 'lightgreen';
+                } else {
+                    iouEl.style.backgroundColor = 'lightcoral';
+                }
 
                 // New Ratio Calculations
                 document.getElementById('interOverB1').innerText = (area1 > 0 ? intersectionArea / area1 : 0).toFixed(3);
@@ -360,6 +387,12 @@
             // --- Event Listeners ---
             editBox1Btn.addEventListener('click', () => setActiveBox(box1, editBox1Btn));
             editBox2Btn.addEventListener('click', () => setActiveBox(box2, editBox2Btn));
+
+            iouThresholdSlider.addEventListener('input', (e) => {
+                iouThresholdValueSpan.innerText = parseFloat(e.target.value).toFixed(2);
+                updateAllCalculations(); // Recalculate colors when slider moves
+            });
+
             document.getElementById('reset').addEventListener('click', () => {
                 box1 = { ...DEFAULT_BOX_1 };
                 box2 = { ...DEFAULT_BOX_2 };
@@ -436,22 +469,31 @@
                     if (resizeHandle.includes('s')) box.ymax += dy;
                     if (resizeHandle.includes('n')) box.ymin += dy;
 
-                    // Prevent negative size by swapping if needed
-                    if (box.xmin > box.xmax) [box.xmin, box.xmax] = [box.xmax, box.xmin];
-                    if (box.ymin > box.ymax) [box.ymin, box.ymax] = [box.ymax, box.ymin];
+                    // No boundary checks during resize for smoother feel, but prevent inversion
+                    if (box.xmin > box.xmax) {
+                        [box.xmin, box.xmax] = [box.xmax, box.xmin];
+                        // Invert handle
+                        resizeHandle = resizeHandle.replace('e', 'W').replace('w', 'E').replace('n', 'S').replace('s', 'N').toLowerCase();
+                    }
+                     if (box.ymin > box.ymax) {
+                        [box.ymin, box.ymax] = [box.ymax, box.ymin];
+                        // Invert handle
+                        resizeHandle = resizeHandle.replace('e', 'W').replace('w', 'E').replace('n', 'S').replace('s', 'N').toLowerCase();
+                    }
 
                     startX = pos.x;
                     startY = pos.y;
                 } else if (isDragging) {
+                    // Update all coordinates
+                    activeBox.xmin += dx;
+                    activeBox.ymin += dy;
+                    activeBox.xmax += dx;
+                    activeBox.ymax += dy;
+
+                    // Enforce canvas boundaries by shifting the box back
                     const width = activeBox.xmax - activeBox.xmin;
                     const height = activeBox.ymax - activeBox.ymin;
 
-                    activeBox.xmin += dx;
-                    activeBox.ymin += dy;
-                    activeBox.xmax = activeBox.xmin + width;
-                    activeBox.ymax = activeBox.ymin + height;
-
-                    // Enforce canvas boundaries
                     if (activeBox.xmin < 0) {
                         activeBox.xmin = 0;
                         activeBox.xmax = width;
@@ -471,6 +513,7 @@
 
                     startX = pos.x;
                     startY = pos.y;
+
                 } else {
                     // Update cursor style on hover
                     const handle = getResizeHandle(pos, activeBox);
