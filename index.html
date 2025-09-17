@@ -3,110 +3,546 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IoU Visualizer</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Intersection over Union (IoU) Visualizer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        h1, h2, h3 {
+            color: #1a202c;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+        #iouCanvas {
+            border: 1px solid #ccc;
+            cursor: crosshair;
+            background-color: #fff;
+        }
+        .controls {
+            flex: 1;
+            min-width: 300px;
+        }
+        .buttons button {
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            background-color: #fff;
+            cursor: pointer;
+            margin-right: 10px;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        .buttons button:hover {
+            background-color: #f7fafc;
+        }
+        .buttons button.active {
+            background-color: #2c5282;
+            color: white;
+            border-color: #2c5282;
+        }
+        #reset {
+            background-color: #e53e3e;
+            color: white;
+            border-color: #e53e3e;
+        }
+        #reset:hover {
+            background-color: #c53030;
+        }
+        .box-controls {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .coords, .coords-percent {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+         .coords-percent {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e2e8f0;
+        }
+        .coords label, .coords-percent label {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+        }
+        .coords input, .coords-percent input {
+            width: 60px;
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-left: 5px;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            line-height: 1.6;
+        }
+        .results span {
+            font-weight: bold;
+            color: #2d3748;
+        }
+        #iou {
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+    </style>
 </head>
 <body>
+    <h1>IoU Visualizer</h1>
     <div class="container">
-        <header>
-            <h1>IoU Visualizer</h1>
-            <p>Interactive tool to visualize and calculate Intersection over Union (IoU) for bounding boxes</p>
-        </header>
+        <canvas id="iouCanvas" width="600" height="400"></canvas>
+        <div class="controls">
+            <h2>Controls</h2>
+            <div class="buttons">
+                <button id="editBox1" aria-label="Edit Box 1">Edit Box 1</button>
+                <button id="editBox2" aria-label="Edit Box 2">Edit Box 2</button>
+                <button id="reset" aria-label="Reset Boxes">Reset</button>
+            </div>
 
-        <div class="main-content">
-            <div class="canvas-container">
-                <canvas id="canvas" width="600" height="400"></canvas>
-                <div class="canvas-controls">
-                    <button id="toggleBox1" class="toggle-btn active">Edit Box 1</button>
-                    <button id="toggleBox2" class="toggle-btn">Edit Box 2</button>
-                    <button id="resetBtn" class="reset-btn">Reset</button>
+            <div class="box-controls">
+                <h3>Box 1 (Red)</h3>
+                <div class="coords">
+                    <div><label>xmin: <input type="number" id="b1_xmin_pix" class="pixel-input"> px</label></div>
+                    <div><label>ymin: <input type="number" id="b1_ymin_pix" class="pixel-input"> px</label></div>
+                    <div><label>xmax: <input type="number" id="b1_xmax_pix" class="pixel-input"> px</label></div>
+                    <div><label>ymax: <input type="number" id="b1_ymax_pix" class="pixel-input"> px</label></div>
+                </div>
+                 <div class="coords-percent">
+                    <div><label>xmin: <input type="number" id="b1_xmin_pct" class="percent-input"> %</label></div>
+                    <div><label>ymin: <input type="number" id="b1_ymin_pct" class="percent-input"> %</label></div>
+                    <div><label>xmax: <input type="number" id="b1_xmax_pct" class="percent-input"> %</label></div>
+                    <div><label>ymax: <input type="number" id="b1_ymax_pct" class="percent-input"> %</label></div>
                 </div>
             </div>
 
-            <div class="controls-panel">
-                <div class="coordinates-section">
-                    <h3>Box 1 Coordinates</h3>
-                    <div class="coord-group">
-                        <label>Percentage:</label>
-                        <div class="coord-inputs">
-                            <input type="number" id="box1-x-percent" placeholder="X%" min="0" max="100" step="0.1">
-                            <input type="number" id="box1-y-percent" placeholder="Y%" min="0" max="100" step="0.1">
-                            <input type="number" id="box1-w-percent" placeholder="W%" min="0" max="100" step="0.1">
-                            <input type="number" id="box1-h-percent" placeholder="H%" min="0" max="100" step="0.1">
-                        </div>
-                    </div>
-                    <div class="coord-group">
-                        <label>Pixels:</label>
-                        <div class="coord-inputs">
-                            <input type="number" id="box1-x-pixels" placeholder="X px" min="0" step="1">
-                            <input type="number" id="box1-y-pixels" placeholder="Y px" min="0" step="1">
-                            <input type="number" id="box1-w-pixels" placeholder="W px" min="0" step="1">
-                            <input type="number" id="box1-h-pixels" placeholder="H px" min="0" step="1">
-                        </div>
-                    </div>
+            <div class="box-controls">
+                <h3>Box 2 (Blue)</h3>
+                 <div class="coords">
+                    <div><label>xmin: <input type="number" id="b2_xmin_pix" class="pixel-input"> px</label></div>
+                    <div><label>ymin: <input type="number" id="b2_ymin_pix" class="pixel-input"> px</label></div>
+                    <div><label>xmax: <input type="number" id="b2_xmax_pix" class="pixel-input"> px</label></div>
+                    <div><label>ymax: <input type="number" id="b2_ymax_pix" class="pixel-input"> px</label></div>
                 </div>
+                 <div class="coords-percent">
+                    <div><label>xmin: <input type="number" id="b2_xmin_pct" class="percent-input"> %</label></div>
+                    <div><label>ymin: <input type="number" id="b2_ymin_pct" class="percent-input"> %</label></div>
+                    <div><label>xmax: <input type="number" id="b2_xmax_pct" class="percent-input"> %</label></div>
+                    <div><label>ymax: <input type="number" id="b2_ymax_pct" class="percent-input"> %</label></div>
+                </div>
+            </div>
 
-                <div class="coordinates-section">
-                    <h3>Box 2 Coordinates</h3>
-                    <div class="coord-group">
-                        <label>Percentage:</label>
-                        <div class="coord-inputs">
-                            <input type="number" id="box2-x-percent" placeholder="X%" min="0" max="100" step="0.1">
-                            <input type="number" id="box2-y-percent" placeholder="Y%" min="0" max="100" step="0.1">
-                            <input type="number" id="box2-w-percent" placeholder="W%" min="0" max="100" step="0.1">
-                            <input type="number" id="box2-h-percent" placeholder="H%" min="0" max="100" step="0.1">
-                        </div>
-                    </div>
-                    <div class="coord-group">
-                        <label>Pixels:</label>
-                        <div class="coord-inputs">
-                            <input type="number" id="box2-x-pixels" placeholder="X px" min="0" step="1">
-                            <input type="number" id="box2-y-pixels" placeholder="Y px" min="0" step="1">
-                            <input type="number" id="box2-w-pixels" placeholder="W px" min="0" step="1">
-                            <input type="number" id="box2-h-pixels" placeholder="H px" min="0" step="1">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="calculations-section">
-                    <h3>Calculations</h3>
-                    <div class="calc-grid">
-                        <div class="calc-item">
-                            <label>Box 1 Area:</label>
-                            <span id="area1">0</span>
-                        </div>
-                        <div class="calc-item">
-                            <label>Box 2 Area:</label>
-                            <span id="area2">0</span>
-                        </div>
-                        <div class="calc-item">
-                            <label>Intersection:</label>
-                            <span id="intersection">0</span>
-                        </div>
-                        <div class="calc-item">
-                            <label>Union:</label>
-                            <span id="union">0</span>
-                        </div>
-                        <div class="calc-item iou-result">
-                            <label>IoU:</label>
-                            <span id="iou">0.000</span>
-                        </div>
-                        <div class="calc-item">
-                            <label>IoU Threshold:</label>
-                            <input type="range" id="iouThreshold" min="0" max="1" step="0.01" value="0.5">
-                            <span id="thresholdValue">0.50</span>
-                        </div>
-                    </div>
-                    <div class="threshold-indicator" id="thresholdIndicator">
-                        <span id="thresholdStatus">Below Threshold</span>
-                    </div>
-                </div>
+            <h2>Calculations</h2>
+            <div class="results">
+                <p title="Area = (xmax - xmin) * (ymax - ymin)">Box 1 Area: <span id="b1Area">0</span> px² (<span id="b1AreaPct">0</span>%)</p>
+                <p title="Area = (xmax - xmin) * (ymax - ymin)">Box 2 Area: <span id="b2Area">0</span> px² (<span id="b2AreaPct">0</span>%)</p>
+                <p>Intersection Area: <span id="intersectionArea">0</span> px² (<span id="intersectionAreaPct">0</span>%)</p>
+                <p>Union Area: <span id="unionArea">0</span> px² (<span id="unionAreaPct">0</span>%)</p>
+                <p title="Intersection over Union is a metric used to measure the extent of overlap between two bounding boxes.">IoU: <span id="iou">0.000</span></p>
+                <hr>
+                <p>Intersection / Box 1 Area: <span id="interOverB1">0.000</span></p>
+                <p>Intersection / Box 2 Area: <span id="interOverB2">0.000</span></p>
+                <p>Union / Box 1 Area: <span id="unionOverB1">0.000</span></p>
+                <p>Union / Box 2 Area: <span id="unionOverB2">0.000</span></p>
             </div>
         </div>
-
-        <div class="tooltip" id="tooltip"></div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('iouCanvas');
+            const ctx = canvas.getContext('2d');
+
+            const BOX1_COLOR = 'rgba(255, 0, 0, 0.5)';
+            const BOX2_COLOR = 'rgba(0, 0, 255, 0.5)';
+            const INTERSECTION_COLOR = 'rgba(128, 0, 128, 0.8)';
+            const LINE_COLOR = '#333';
+            const HANDLE_SIZE = 8;
+
+            const DEFAULT_BOX_1 = { xmin: 50, ymin: 50, xmax: 200, ymax: 150, color: BOX1_COLOR };
+            const DEFAULT_BOX_2 = { xmin: 120, ymin: 120, xmax: 300, ymax: 250, color: BOX2_COLOR };
+
+            let box1 = { ...DEFAULT_BOX_1 };
+            let box2 = { ...DEFAULT_BOX_2 };
+
+            function getIntersection(b1, b2) {
+                const xmin = Math.max(b1.xmin, b2.xmin);
+                const ymin = Math.max(b1.ymin, b2.ymin);
+                const xmax = Math.min(b1.xmax, b2.xmax);
+                const ymax = Math.min(b1.ymax, b2.ymax);
+
+                if (xmax > xmin && ymax > ymin) {
+                    return { xmin, ymin, xmax, ymax };
+                }
+                return null;
+            }
+
+            function drawBox(box) {
+                const w = box.xmax - box.xmin;
+                const h = box.ymax - box.ymin;
+
+                // Draw the main box
+                ctx.fillStyle = box.color;
+                ctx.fillRect(box.xmin, box.ymin, w, h);
+                ctx.strokeStyle = (box === activeBox) ? '#000' : LINE_COLOR;
+                ctx.lineWidth = (box === activeBox) ? 3 : 2;
+                ctx.strokeRect(box.xmin, box.ymin, w, h);
+
+                // Draw resize handles if the box is active
+                if (box === activeBox) {
+                    ctx.fillStyle = '#000';
+                    const half = HANDLE_SIZE / 2;
+                    // Corners
+                    ctx.fillRect(box.xmin - half, box.ymin - half, HANDLE_SIZE, HANDLE_SIZE);
+                    ctx.fillRect(box.xmax - half, box.ymin - half, HANDLE_SIZE, HANDLE_SIZE);
+                    ctx.fillRect(box.xmin - half, box.ymax - half, HANDLE_SIZE, HANDLE_SIZE);
+                    ctx.fillRect(box.xmax - half, box.ymax - half, HANDLE_SIZE, HANDLE_SIZE);
+                    // Edges
+                    ctx.fillRect(box.xmin + w / 2 - half, box.ymin - half, HANDLE_SIZE, HANDLE_SIZE);
+                    ctx.fillRect(box.xmin + w / 2 - half, box.ymax - half, HANDLE_SIZE, HANDLE_SIZE);
+                    ctx.fillRect(box.xmin - half, box.ymin + h / 2 - half, HANDLE_SIZE, HANDLE_SIZE);
+                    ctx.fillRect(box.xmax - half, box.ymin + h / 2 - half, HANDLE_SIZE, HANDLE_SIZE);
+                }
+            }
+
+            function draw() {
+                // Clear canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Draw boxes
+                drawBox(box1);
+                drawBox(box2);
+
+                // Draw intersection
+                const intersection = getIntersection(box1, box2);
+                if (intersection) {
+                    const w = intersection.xmax - intersection.xmin;
+                    const h = intersection.ymax - intersection.ymin;
+                    ctx.fillStyle = INTERSECTION_COLOR;
+                    ctx.fillRect(intersection.xmin, intersection.ymin, w, h);
+                }
+            }
+
+            let activeBox = box1;
+            let boxes = [box1, box2];
+
+            // --- DOM Elements ---
+            const editBox1Btn = document.getElementById('editBox1');
+            const editBox2Btn = document.getElementById('editBox2');
+
+            const inputs = {
+                b1: {
+                    xmin_pix: document.getElementById('b1_xmin_pix'), ymin_pix: document.getElementById('b1_ymin_pix'),
+                    xmax_pix: document.getElementById('b1_xmax_pix'), ymax_pix: document.getElementById('b1_ymax_pix'),
+                    xmin_pct: document.getElementById('b1_xmin_pct'), ymin_pct: document.getElementById('b1_ymin_pct'),
+                    xmax_pct: document.getElementById('b1_xmax_pct'), ymax_pct: document.getElementById('b1_ymax_pct'),
+                },
+                b2: {
+                    xmin_pix: document.getElementById('b2_xmin_pix'), ymin_pix: document.getElementById('b2_ymin_pix'),
+                    xmax_pix: document.getElementById('b2_xmax_pix'), ymax_pix: document.getElementById('b2_ymax_pix'),
+                    xmin_pct: document.getElementById('b2_xmin_pct'), ymin_pct: document.getElementById('b2_ymin_pct'),
+                    xmax_pct: document.getElementById('b2_xmax_pct'), ymax_pct: document.getElementById('b2_ymax_pct'),
+                }
+            };
+
+            // --- State Management ---
+            function setActiveBox(box, btn) {
+                activeBox = box;
+                editBox1Btn.classList.remove('active');
+                editBox2Btn.classList.remove('active');
+                btn.classList.add('active');
+                draw();
+            }
+
+            // --- UI Updates ---
+            function updateAllInputs() {
+                updateInputsForBox(box1, 'b1');
+                updateInputsForBox(box2, 'b2');
+            }
+
+            function updateInputsForBox(box, boxKey) {
+                const boxInputs = inputs[boxKey];
+                boxInputs.xmin_pix.value = box.xmin.toFixed(0);
+                boxInputs.ymin_pix.value = box.ymin.toFixed(0);
+                boxInputs.xmax_pix.value = box.xmax.toFixed(0);
+                boxInputs.ymax_pix.value = box.ymax.toFixed(0);
+
+                boxInputs.xmin_pct.value = (box.xmin / canvas.width * 100).toFixed(2);
+                boxInputs.ymin_pct.value = (box.ymin / canvas.height * 100).toFixed(2);
+                boxInputs.xmax_pct.value = (box.xmax / canvas.width * 100).toFixed(2);
+                boxInputs.ymax_pct.value = (box.ymax / canvas.height * 100).toFixed(2);
+            }
+
+            function handleInputChange(e) {
+                const target = e.target;
+                const boxKey = target.id.startsWith('b1') ? 'b1' : 'b2';
+                const box = boxKey === 'b1' ? box1 : box2;
+
+                const parts = target.id.split('_'); // e.g., "b1_xmin_pix"
+                const prop = parts[1]; // "xmin", "ymin", etc.
+
+                const isPixel = target.classList.contains('pixel-input');
+                const value = parseFloat(target.value) || 0;
+
+                if (isPixel) {
+                    box[prop] = value;
+                } else { // Is percentage
+                    const isX = prop.includes('x');
+                    const canvasDim = isX ? canvas.width : canvas.height;
+                    box[prop] = (value / 100) * canvasDim;
+                }
+
+                // Prevent negative sizes by swapping values if needed
+                if (box.xmin > box.xmax) [box.xmin, box.xmax] = [box.xmax, box.xmin];
+                if (box.ymin > box.ymax) [box.ymin, box.ymax] = [box.ymax, box.ymin];
+
+                updateAllCalculations();
+                updateInputsForBox(box, boxKey);
+                draw();
+            }
+
+            // --- Calculations ---
+            function updateAllCalculations() {
+                const canvasArea = canvas.width * canvas.height;
+
+                // Areas
+                const area1 = (box1.xmax - box1.xmin) * (box1.ymax - box1.ymin);
+                const area2 = (box2.xmax - box2.xmin) * (box2.ymax - box2.ymin);
+                document.getElementById('b1Area').innerText = area1.toFixed(0);
+                document.getElementById('b2Area').innerText = area2.toFixed(0);
+                document.getElementById('b1AreaPct').innerText = (area1 / canvasArea * 100).toFixed(2);
+                document.getElementById('b2AreaPct').innerText = (area2 / canvasArea * 100).toFixed(2);
+
+                // Intersection
+                const intersection = getIntersection(box1, box2);
+                const intersectionArea = intersection ? (intersection.xmax - intersection.xmin) * (intersection.ymax - intersection.ymin) : 0;
+                document.getElementById('intersectionArea').innerText = intersectionArea.toFixed(0);
+                document.getElementById('intersectionAreaPct').innerText = (intersectionArea / canvasArea * 100).toFixed(2);
+
+                // Union
+                const unionArea = area1 + area2 - intersectionArea;
+                document.getElementById('unionArea').innerText = unionArea.toFixed(0);
+                document.getElementById('unionAreaPct').innerText = (unionArea / canvasArea * 100).toFixed(2);
+
+                // IoU
+                const iou = unionArea > 0 ? intersectionArea / unionArea : 0;
+                const iouEl = document.getElementById('iou');
+                iouEl.innerText = iou.toFixed(3);
+
+                // IoU threshold color indicator
+                if (iou > 0.75) iouEl.style.backgroundColor = 'lightgreen';
+                else if (iou > 0.5) iouEl.style.backgroundColor = 'yellow';
+                else iouEl.style.backgroundColor = 'lightcoral';
+
+                // New Ratio Calculations
+                document.getElementById('interOverB1').innerText = (area1 > 0 ? intersectionArea / area1 : 0).toFixed(3);
+                document.getElementById('interOverB2').innerText = (area2 > 0 ? intersectionArea / area2 : 0).toFixed(3);
+                document.getElementById('unionOverB1').innerText = (area1 > 0 ? unionArea / area1 : 0).toFixed(3);
+                document.getElementById('unionOverB2').innerText = (area2 > 0 ? unionArea / area2 : 0).toFixed(3);
+            }
+
+            // --- Event Listeners ---
+            editBox1Btn.addEventListener('click', () => setActiveBox(box1, editBox1Btn));
+            editBox2Btn.addEventListener('click', () => setActiveBox(box2, editBox2Btn));
+            document.getElementById('reset').addEventListener('click', () => {
+                box1 = { ...DEFAULT_BOX_1 };
+                box2 = { ...DEFAULT_BOX_2 };
+                // After resetting data, we need to update everything
+                setActiveBox(box1, editBox1Btn); // Default to box1 active
+                updateAllInputs();
+                updateAllCalculations();
+                draw();
+            });
+
+            Object.values(inputs.b1).forEach(input => input.addEventListener('input', handleInputChange));
+            Object.values(inputs.b2).forEach(input => input.addEventListener('input', handleInputChange));
+
+            // --- Canvas Interaction ---
+            let isDragging = false;
+            let isResizing = false;
+            let resizeHandle = '';
+            let startX, startY;
+
+            function getMousePos(e) {
+                const rect = canvas.getBoundingClientRect();
+                return {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+            }
+
+            function getResizeHandle(pos, box) {
+                const half = HANDLE_SIZE / 2;
+                const w = box.xmax - box.xmin;
+                const h = box.ymax - box.ymin;
+
+                // Corner handles
+                if (Math.abs(pos.x - box.xmin) < half && Math.abs(pos.y - box.ymin) < half) return 'nw';
+                if (Math.abs(pos.x - box.xmax) < half && Math.abs(pos.y - box.ymin) < half) return 'ne';
+                if (Math.abs(pos.x - box.xmin) < half && Math.abs(pos.y - box.ymax) < half) return 'sw';
+                if (Math.abs(pos.x - box.xmax) < half && Math.abs(pos.y - box.ymax) < half) return 'se';
+
+                // Edge handles
+                if (Math.abs(pos.x - box.xmin) < half && pos.y > box.ymin && pos.y < box.ymax) return 'w';
+                if (Math.abs(pos.x - box.xmax) < half && pos.y > box.ymin && pos.y < box.ymax) return 'e';
+                if (Math.abs(pos.y - box.ymin) < half && pos.x > box.xmin && pos.x < box.xmax) return 'n';
+                if (Math.abs(pos.y - box.ymax) < half && pos.x > box.xmin && pos.x < box.xmax) return 's';
+
+                return null;
+            }
+
+            function isPointInBox(pos, box) {
+                return pos.x > box.xmin && pos.x < box.xmax && pos.y > box.ymin && pos.y < box.ymax;
+            }
+
+            canvas.addEventListener('mousedown', (e) => {
+                const pos = getMousePos(e);
+                startX = pos.x;
+                startY = pos.y;
+
+                resizeHandle = getResizeHandle(pos, activeBox);
+                if (resizeHandle) {
+                    isResizing = true;
+                } else if (isPointInBox(pos, activeBox)) {
+                    isDragging = true;
+                }
+            });
+
+            canvas.addEventListener('mousemove', (e) => {
+                const pos = getMousePos(e);
+                const dx = pos.x - startX;
+                const dy = pos.y - startY;
+
+                if (isResizing) {
+                    const box = activeBox;
+                    if (resizeHandle.includes('e')) box.xmax += dx;
+                    if (resizeHandle.includes('w')) box.xmin += dx;
+                    if (resizeHandle.includes('s')) box.ymax += dy;
+                    if (resizeHandle.includes('n')) box.ymin += dy;
+
+                    // Prevent negative size by swapping if needed
+                    if (box.xmin > box.xmax) [box.xmin, box.xmax] = [box.xmax, box.xmin];
+                    if (box.ymin > box.ymax) [box.ymin, box.ymax] = [box.ymax, box.ymin];
+
+                    startX = pos.x;
+                    startY = pos.y;
+                } else if (isDragging) {
+                    const width = activeBox.xmax - activeBox.xmin;
+                    const height = activeBox.ymax - activeBox.ymin;
+
+                    activeBox.xmin += dx;
+                    activeBox.ymin += dy;
+                    activeBox.xmax = activeBox.xmin + width;
+                    activeBox.ymax = activeBox.ymin + height;
+
+                    // Enforce canvas boundaries
+                    if (activeBox.xmin < 0) {
+                        activeBox.xmin = 0;
+                        activeBox.xmax = width;
+                    }
+                    if (activeBox.xmax > canvas.width) {
+                        activeBox.xmax = canvas.width;
+                        activeBox.xmin = canvas.width - width;
+                    }
+                    if (activeBox.ymin < 0) {
+                        activeBox.ymin = 0;
+                        activeBox.ymax = height;
+                    }
+                    if (activeBox.ymax > canvas.height) {
+                        activeBox.ymax = canvas.height;
+                        activeBox.ymin = canvas.height - height;
+                    }
+
+                    startX = pos.x;
+                    startY = pos.y;
+                } else {
+                    // Update cursor style on hover
+                    const handle = getResizeHandle(pos, activeBox);
+                    if (handle) {
+                        if (handle.includes('n') && handle.includes('w')) canvas.style.cursor = 'nwse-resize';
+                        else if (handle.includes('n') && handle.includes('e')) canvas.style.cursor = 'nesw-resize';
+                        else if (handle.includes('s') && handle.includes('w')) canvas.style.cursor = 'nesw-resize';
+                        else if (handle.includes('s') && handle.includes('e')) canvas.style.cursor = 'nwse-resize';
+                        else if (handle.includes('n') || handle.includes('s')) canvas.style.cursor = 'ns-resize';
+                        else if (handle.includes('e') || handle.includes('w')) canvas.style.cursor = 'ew-resize';
+                    } else if (isPointInBox(pos, activeBox)) {
+                        canvas.style.cursor = 'move';
+                    } else {
+                        canvas.style.cursor = 'crosshair';
+                    }
+                }
+
+                if (isDragging || isResizing) {
+                    updateAllInputs();
+                    updateAllCalculations();
+                    draw();
+                }
+            });
+
+            canvas.addEventListener('mouseup', () => {
+                isDragging = false;
+                isResizing = false;
+            });
+
+            canvas.addEventListener('mouseleave', () => {
+                isDragging = false;
+                isResizing = false;
+            });
+
+            // --- Unit Tests for Calculations ---
+            function runTests() {
+                console.log("--- Running Calculation Tests ---");
+
+                // Test case 1: Simple overlap
+                const t1_b1 = {xmin: 0, ymin: 0, xmax: 10, ymax: 10};
+                const t1_b2 = {xmin: 5, ymin: 5, xmax: 15, ymax: 15};
+                const t1_i = getIntersection(t1_b1, t1_b2);
+                console.assert(t1_i.xmin === 5 && t1_i.ymin === 5 && t1_i.xmax === 10 && t1_i.ymax === 10, "Test 1 Failed: Simple Overlap");
+
+                // Test case 2: No overlap
+                const t2_b1 = {xmin: 0, ymin: 0, xmax: 10, ymax: 10};
+                const t2_b2 = {xmin: 20, ymin: 20, xmax: 30, ymax: 30};
+                const t2_i = getIntersection(t2_b1, t2_b2);
+                console.assert(t2_i === null, "Test 2 Failed: No Overlap");
+
+                // Test case 3: One box inside another
+                const t3_b1 = {xmin: 0, ymin: 0, xmax: 20, ymax: 20};
+                const t3_b2 = {xmin: 5, ymin: 5, xmax: 15, ymax: 15};
+                const t3_i = getIntersection(t3_b1, t3_b2);
+                console.assert(t3_i.xmin === 5 && t3_i.ymin === 5 && t3_i.xmax === 15 && t3_i.ymax === 15, "Test 3 Failed: Containment");
+
+                // Test case 4: Touching edges
+                const t4_b1 = {xmin: 0, ymin: 0, xmax: 10, ymax: 10};
+                const t4_b2 = {xmin: 10, ymin: 0, xmax: 20, ymax: 10};
+                const t4_i = getIntersection(t4_b1, t4_b2);
+                console.assert(t4_i === null, "Test 4 Failed: Touching Edges");
+
+                console.log("--- Tests Complete ---");
+            }
+
+            // --- Initial Setup ---
+            setActiveBox(box1, editBox1Btn); // Set Box 1 as active by default
+            updateAllInputs();
+            updateAllCalculations();
+            draw();
+            runTests();
+        });
+    </script>
 </body>
 </html>
