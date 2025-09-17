@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoU Visualizer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>IoU Visualizer</h1>
+            <p>Interactive tool to visualize and calculate Intersection over Union (IoU) for bounding boxes</p>
+        </header>
+
+        <div class="main-content">
+            <div class="canvas-container">
+                <canvas id="canvas" width="600" height="400"></canvas>
+                <div class="canvas-controls">
+                    <button id="toggleBox1" class="toggle-btn active">Edit Box 1</button>
+                    <button id="toggleBox2" class="toggle-btn">Edit Box 2</button>
+                    <button id="resetBtn" class="reset-btn">Reset</button>
+                </div>
+            </div>
+
+            <div class="controls-panel">
+                <div class="coordinates-section">
+                    <h3>Box 1 Coordinates</h3>
+                    <div class="coord-group">
+                        <label>Percentage:</label>
+                        <div class="coord-inputs">
+                            <input type="number" id="box1-x-percent" placeholder="X%" min="0" max="100" step="0.1">
+                            <input type="number" id="box1-y-percent" placeholder="Y%" min="0" max="100" step="0.1">
+                            <input type="number" id="box1-w-percent" placeholder="W%" min="0" max="100" step="0.1">
+                            <input type="number" id="box1-h-percent" placeholder="H%" min="0" max="100" step="0.1">
+                        </div>
+                    </div>
+                    <div class="coord-group">
+                        <label>Pixels:</label>
+                        <div class="coord-inputs">
+                            <input type="number" id="box1-x-pixels" placeholder="X px" min="0" step="1">
+                            <input type="number" id="box1-y-pixels" placeholder="Y px" min="0" step="1">
+                            <input type="number" id="box1-w-pixels" placeholder="W px" min="0" step="1">
+                            <input type="number" id="box1-h-pixels" placeholder="H px" min="0" step="1">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="coordinates-section">
+                    <h3>Box 2 Coordinates</h3>
+                    <div class="coord-group">
+                        <label>Percentage:</label>
+                        <div class="coord-inputs">
+                            <input type="number" id="box2-x-percent" placeholder="X%" min="0" max="100" step="0.1">
+                            <input type="number" id="box2-y-percent" placeholder="Y%" min="0" max="100" step="0.1">
+                            <input type="number" id="box2-w-percent" placeholder="W%" min="0" max="100" step="0.1">
+                            <input type="number" id="box2-h-percent" placeholder="H%" min="0" max="100" step="0.1">
+                        </div>
+                    </div>
+                    <div class="coord-group">
+                        <label>Pixels:</label>
+                        <div class="coord-inputs">
+                            <input type="number" id="box2-x-pixels" placeholder="X px" min="0" step="1">
+                            <input type="number" id="box2-y-pixels" placeholder="Y px" min="0" step="1">
+                            <input type="number" id="box2-w-pixels" placeholder="W px" min="0" step="1">
+                            <input type="number" id="box2-h-pixels" placeholder="H px" min="0" step="1">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="calculations-section">
+                    <h3>Calculations</h3>
+                    <div class="calc-grid">
+                        <div class="calc-item">
+                            <label>Box 1 Area:</label>
+                            <span id="area1">0</span>
+                        </div>
+                        <div class="calc-item">
+                            <label>Box 2 Area:</label>
+                            <span id="area2">0</span>
+                        </div>
+                        <div class="calc-item">
+                            <label>Intersection:</label>
+                            <span id="intersection">0</span>
+                        </div>
+                        <div class="calc-item">
+                            <label>Union:</label>
+                            <span id="union">0</span>
+                        </div>
+                        <div class="calc-item iou-result">
+                            <label>IoU:</label>
+                            <span id="iou">0.000</span>
+                        </div>
+                        <div class="calc-item">
+                            <label>IoU Threshold:</label>
+                            <input type="range" id="iouThreshold" min="0" max="1" step="0.01" value="0.5">
+                            <span id="thresholdValue">0.50</span>
+                        </div>
+                    </div>
+                    <div class="threshold-indicator" id="thresholdIndicator">
+                        <span id="thresholdStatus">Below Threshold</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tooltip" id="tooltip"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
